@@ -12,3 +12,6 @@ instagrapi>=2.0.0
 # === Utilitas ===
 python-dotenv
 aiofiles
+aiohttp
+aiohttp-socks
+PySocks

@@ -150,6 +150,8 @@ async def process_username(message: Message, state: FSMContext) -> None:
             error_text = get_text("error_private", lang, username=username)
         elif error in ("user_not_found",):
             error_text = get_text("error_username", lang)
+        elif error == "ig_account_error":
+            error_text = get_text("error_ig_account", lang)
         elif error in ("login_required", "rate_limited"):
             error_text = get_text("error_ig_login", lang)
         elif error == "ip_blacklisted":

@@ -70,6 +70,11 @@ TEXTS: Dict[str, Dict[str, str]] = {
             "❌ Bot tidak bisa login ke Instagram saat ini.\n"
             "Silakan coba metode Manual (upload file)."
         ),
+        "error_ig_account": (
+            "❌ <b>Akun bot Instagram bermasalah.</b>\n\n"
+            "Akun tidak ditemukan atau belum diverifikasi oleh Instagram.\n"
+            "Gunakan metode <b>📁 Manual (Upload File)</b> sebagai alternatif."
+        ),
         "error_ip_blacklist": (
             "🚫 <b>IP server di-blacklist Instagram.</b>\n\n"
             "Metode Auto tidak tersedia saat ini.\n"
@@ -201,6 +206,11 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "error_ig_login": (
             "❌ Bot can't login to Instagram right now.\n"
             "Please try the Manual method (upload file)."
+        ),
+        "error_ig_account": (
+            "❌ <b>Bot's Instagram account has issues.</b>\n\n"
+            "Account not found or not verified by Instagram.\n"
+            "Use <b>📁 Manual (Upload File)</b> method instead."
         ),
         "error_ip_blacklist": (
             "🚫 <b>Server IP is blacklisted by Instagram.</b>\n\n"

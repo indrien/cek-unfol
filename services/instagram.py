@@ -22,7 +22,7 @@ from instagrapi.exceptions import (
 )
 
 from config import IG_USERNAME, IG_PASSWORD, IG_PROXY
-from utils.proxy_fetcher import get_best_proxy, blacklist_proxy
+from utils.proxy_fetcher import get_best_proxy, blacklist_proxy, format_proxy_for_requests
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 
 # Singleton client Instagram
 _client: Optional[Client] = None
-# Jumlah percobaan proxy sebelum menyerah
-MAX_PROXY_RETRIES = 3
+# Jumlah percobaan proxy sebelum menyerah (tiap percobaan sudah divalidasi)
+MAX_PROXY_RETRIES = 5
 
 
 def _is_ig_configured() -> bool:
@@ -44,7 +44,9 @@ def _is_ig_configured() -> bool:
 async def _try_login_with_proxy(proxy_url: str) -> Client:
     """Coba login Instagram dengan proxy tertentu."""
     cl = Client()
-    cl.set_proxy(proxy_url)
+    # Format proxy untuk requests (socks5 → socks5h)
+    req_proxy = format_proxy_for_requests(proxy_url)
+    cl.set_proxy(req_proxy)
     await asyncio.to_thread(cl.login, IG_USERNAME, IG_PASSWORD)
     return cl
 
@@ -94,7 +96,24 @@ async def _get_client() -> Client:
                 return _client
             except Exception as e:
                 err = str(e).lower()
-                if "blacklist" in err or "challenge" in err:
+
+                # Error akun IG → jangan retry, ini bukan masalah proxy
+                if "can't find" in err or "not found" in err or "sign up" in err:
+                    logger.error("Akun IG '%s' tidak ditemukan oleh API!", IG_USERNAME)
+                    raise LoginRequired(
+                        f"Akun Instagram '{IG_USERNAME}' tidak ditemukan. "
+                        "Pastikan username benar & akun sudah diverifikasi."
+                    )
+
+                # Error challenge/2FA → jangan retry
+                if "challenge" in err:
+                    logger.error("IG minta verifikasi challenge!")
+                    raise LoginRequired(
+                        "Instagram minta verifikasi keamanan. "
+                        "Login manual dulu di HP, selesaikan challenge, lalu coba lagi."
+                    )
+
+                if "blacklist" in err:
                     logger.warning("Proxy %s di-blacklist IG, coba lain...", proxy_url)
                 else:
                     logger.warning("Proxy %s gagal login IG: %s", proxy_url, e)
@@ -149,10 +168,17 @@ async def check_unfollowers_auto(username: str) -> dict:
             "unfollowers_count": len(unfollowers),
         }
 
-    except (LoginRequired, ChallengeRequired):
+    except (LoginRequired, ChallengeRequired) as e:
         # Reset client agar login ulang di request berikutnya
         global _client
         _client = None
+        err_msg = str(e).lower()
+        # Error akun bot IG tidak ditemukan
+        if "tidak ditemukan" in err_msg or "can't find" in err_msg:
+            return {"success": False, "error": "ig_account_error"}
+        # Error challenge/verifikasi
+        if "challenge" in err_msg or "verifikasi" in err_msg:
+            return {"success": False, "error": "ig_account_error"}
         return {"success": False, "error": "login_required"}
     except PleaseWaitFewMinutes:
         return {"success": False, "error": "rate_limited"}

@@ -17,6 +17,7 @@ import logging
 from typing import Optional, List, Set
 
 import aiohttp
+from aiohttp_socks import ProxyConnector
 
 logger = logging.getLogger(__name__)
 
@@ -118,24 +119,34 @@ async def fetch_all_proxies(proxy_type: str = "http") -> List[str]:
 
 async def validate_proxy(proxy_url: str) -> bool:
     """
-    Test apakah proxy bisa konek ke internet.
-    Test ke httpbin.org dan instagram.com.
+    Test apakah proxy bisa konek ke Instagram (bukan cuma internet biasa).
+    Cek bahwa response benar-benar dari Instagram, bukan intercepted/hijacked.
+    Mendukung HTTP, SOCKS4, SOCKS5 proxy via aiohttp-socks.
     """
-    test_urls = [
-        "https://httpbin.org/ip",
-        "https://www.instagram.com/",
-    ]
     try:
-        connector = aiohttp.TCPConnector(ssl=False)
+        # Gunakan ProxyConnector untuk semua tipe proxy (HTTP/SOCKS)
+        connector = ProxyConnector.from_url(proxy_url, ssl=False)
         async with aiohttp.ClientSession(connector=connector) as session:
-            # Test ke httpbin dulu (ringan)
+            # Test langsung ke Instagram API endpoint
             async with session.get(
-                test_urls[0],
-                proxy=proxy_url,
+                "https://i.instagram.com/api/v1/public/landing_info/",
                 timeout=aiohttp.ClientTimeout(total=VALIDATE_TIMEOUT),
+                headers={
+                    "User-Agent": "Instagram 269.0.0.18.75 Android",
+                },
             ) as resp:
                 if resp.status == 200:
-                    logger.info("✓ Proxy valid: %s", proxy_url)
+                    text = await resp.text()
+                    # Pastikan response benar dari IG (JSON), bukan HTML hijack
+                    if text.strip().startswith("{"):
+                        logger.info("✓ Proxy valid (IG OK): %s", proxy_url)
+                        return True
+                    else:
+                        logger.debug("✗ Proxy hijacked: %s", proxy_url)
+                        return False
+                # Status 429 = rate limited tapi proxy tetap konek ke IG
+                if resp.status == 429:
+                    logger.info("✓ Proxy valid (IG 429): %s", proxy_url)
                     return True
     except Exception:
         pass
@@ -159,7 +170,18 @@ def format_proxy_url(proxy: str, proxy_type: str = "http") -> str:
     """Format proxy mentah (ip:port) ke URL yang bisa dipakai."""
     if proxy.startswith(("http://", "https://", "socks5://", "socks4://")):
         return proxy
+    # socks5h:// = DNS resolution lewat proxy juga (lebih aman)
+    if proxy_type == "socks5":
+        return f"socks5h://{proxy}"
     return f"{proxy_type}://{proxy}"
+
+
+def format_proxy_for_requests(proxy_url: str) -> str:
+    """Format proxy URL untuk requests/instagrapi (socks5 → socks5h)."""
+    # requests butuh socks5h:// agar DNS di-resolve lewat proxy
+    if proxy_url.startswith("socks5://"):
+        return proxy_url.replace("socks5://", "socks5h://", 1)
+    return proxy_url
 
 
 async def get_validated_proxy(
