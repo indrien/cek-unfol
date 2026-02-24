@@ -1,0 +1,26 @@
+"""
+Konfigurasi utama bot — memuat environment variables
+"""
+
+import os
+from dotenv import load_dotenv
+
+# Muat file .env
+load_dotenv()
+
+# === Token Bot Telegram ===
+BOT_TOKEN: str = os.getenv("BOT_TOKEN", "")
+
+# === ID Admin (list integer) ===
+_admin_raw = os.getenv("ADMIN_IDS", "")
+ADMIN_IDS: list[int] = [
+    int(x.strip()) for x in _admin_raw.split(",") if x.strip().isdigit()
+]
+
+# === MongoDB ===
+MONGO_URI: str = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+MONGO_DB_NAME: str = os.getenv("MONGO_DB_NAME", "cek_unfol_bot")
+
+# === Akun Instagram untuk metode auto ===
+IG_USERNAME: str = os.getenv("IG_USERNAME", "")
+IG_PASSWORD: str = os.getenv("IG_PASSWORD", "")

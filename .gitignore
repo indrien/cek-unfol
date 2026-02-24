@@ -1,0 +1,27 @@
+# === File rahasia ===
+.env
+
+# === Python cache ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# === Virtual environment ===
+venv/
+.venv/
+env/
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Session Instagram ===
+*.json.bak
+settings.json
