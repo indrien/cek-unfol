@@ -22,6 +22,7 @@ from instagrapi.exceptions import (
 )
 
 from config import IG_USERNAME, IG_PASSWORD, IG_PROXY
+from utils.proxy_fetcher import get_random_proxy
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,8 @@ logger = logging.getLogger(__name__)
 
 # Singleton client Instagram
 _client: Optional[Client] = None
+# Jumlah percobaan proxy gratis sebelum menyerah
+MAX_PROXY_RETRIES = 5
 
 
 def _is_ig_configured() -> bool:
@@ -38,33 +41,68 @@ def _is_ig_configured() -> bool:
     return bool(IG_USERNAME and IG_PASSWORD)
 
 
+async def _try_login_with_proxy(proxy_url: str) -> Client:
+    """Coba login Instagram dengan proxy tertentu."""
+    cl = Client()
+    cl.set_proxy(proxy_url)
+    await asyncio.to_thread(cl.login, IG_USERNAME, IG_PASSWORD)
+    return cl
+
+
 async def _get_client() -> Client:
-    """Dapatkan client Instagram yang sudah login (singleton)."""
+    """
+    Dapatkan client Instagram yang sudah login (singleton).
+    Prioritas proxy:
+    1. IG_PROXY dari .env (jika diisi)
+    2. Proxy gratis dari GitHub (auto-rotate & retry)
+    """
     global _client
     if _client is None:
         if not _is_ig_configured():
             raise LoginRequired("Akun Instagram belum dikonfigurasi di .env")
 
-        _client = Client()
-
-        # Set proxy jika tersedia (PENTING untuk VPS/cloud)
+        # === Opsi 1: Proxy manual dari .env ===
         if IG_PROXY:
+            _client = Client()
             _client.set_proxy(IG_PROXY)
-            logger.info("Menggunakan proxy: %s", IG_PROXY.split("@")[-1])
-        else:
-            logger.warning(
-                "PERINGATAN: Tidak ada proxy! IP datacenter kemungkinan "
-                "di-blacklist Instagram. Set IG_PROXY di .env"
-            )
+            logger.info("Menggunakan proxy manual: %s", IG_PROXY.split("@")[-1])
+            try:
+                await asyncio.to_thread(_client.login, IG_USERNAME, IG_PASSWORD)
+                logger.info("Login Instagram berhasil via proxy manual.")
+                return _client
+            except Exception as e:
+                logger.error("Gagal login via proxy manual: %s", e)
+                _client = None
+                raise
 
-        # Login di thread terpisah agar tidak blocking
-        try:
-            await asyncio.to_thread(_client.login, IG_USERNAME, IG_PASSWORD)
-            logger.info("Login Instagram berhasil.")
-        except Exception as e:
-            logger.error("Gagal login Instagram: %s", e)
-            _client = None
-            raise
+        # === Opsi 2: Proxy gratis dari GitHub (auto-rotate) ===
+        logger.info("IG_PROXY kosong, mencoba proxy gratis dari GitHub...")
+        for attempt in range(1, MAX_PROXY_RETRIES + 1):
+            proxy_url = await get_random_proxy("http")
+            if not proxy_url:
+                logger.error("Tidak ada proxy gratis tersedia.")
+                break
+
+            logger.info(
+                "Percobaan %d/%d — proxy: %s",
+                attempt, MAX_PROXY_RETRIES, proxy_url
+            )
+            try:
+                _client = await _try_login_with_proxy(proxy_url)
+                logger.info("Login Instagram berhasil via proxy gratis: %s", proxy_url)
+                return _client
+            except Exception as e:
+                err = str(e).lower()
+                if "blacklist" in err or "challenge" in err:
+                    logger.warning("Proxy %s di-blacklist, coba proxy lain...", proxy_url)
+                else:
+                    logger.warning("Proxy %s gagal: %s", proxy_url, e)
+                _client = None
+
+        # Semua proxy gagal
+        raise LoginRequired(
+            "Semua proxy gagal. Tambahkan proxy residensial di IG_PROXY (.env)"
+        )
     return _client
 
 
