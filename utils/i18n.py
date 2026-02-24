@@ -4,10 +4,14 @@ Teks UI terpusat di sini agar mudah dikelola dan konsisten.
 Gunakan get_text(key, lang) untuk mengambil teks sesuai bahasa user.
 """
 
+from __future__ import annotations
+
+from typing import Dict
+
 # ============================================================
 # Kamus teks — tambahkan key baru di KEDUA bahasa sekaligus
 # ============================================================
-TEXTS: dict[str, dict[str, str]] = {
+TEXTS: Dict[str, Dict[str, str]] = {
 
     # ── Bahasa Indonesia ──────────────────────────────────
     "id": {

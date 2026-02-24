@@ -4,12 +4,14 @@ Layanan Instagram — dua metode pengecekan unfollowers:
 2. Manual: user upload file ZIP/JSON dari Instagram Data Download.
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
 import io
 import zipfile
 import logging
-from typing import Optional
+from typing import Optional, List
 
 from instagrapi import Client
 from instagrapi.exceptions import (
@@ -108,7 +110,7 @@ async def check_unfollowers_auto(username: str) -> dict:
 #  METODE 2 — MANUAL (Upload file ZIP/JSON)
 # ══════════════════════════════════════════════
 
-def _extract_usernames_from_list(data: list) -> list[str]:
+def _extract_usernames_from_list(data: list) -> List[str]:
     """Ekstrak username dari format list Instagram JSON."""
     usernames = []
     for item in data:
@@ -184,8 +186,8 @@ def parse_instagram_json(file_bytes: bytes) -> dict:
     """
     try:
         data = json.loads(file_bytes)
-        followers_list: list[str] = []
-        following_list: list[str] = []
+        followers_list: List[str] = []
+        following_list: List[str] = []
 
         if isinstance(data, dict):
             # Format: {"relationships_followers": [...], ...}

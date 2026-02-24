@@ -2,7 +2,11 @@
 Konfigurasi utama bot — memuat environment variables
 """
 
+from __future__ import annotations
+
 import os
+from typing import List
+
 from dotenv import load_dotenv
 
 # Muat file .env
@@ -13,7 +17,7 @@ BOT_TOKEN: str = os.getenv("BOT_TOKEN", "")
 
 # === ID Admin (list integer) ===
 _admin_raw = os.getenv("ADMIN_IDS", "")
-ADMIN_IDS: list[int] = [
+ADMIN_IDS: List[int] = [
     int(x.strip()) for x in _admin_raw.split(",") if x.strip().isdigit()
 ]
 

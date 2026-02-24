@@ -3,7 +3,11 @@ Operasi MongoDB — User, History, Statistik
 Menggunakan Motor (async driver) agar tidak blocking event loop.
 """
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
+from typing import Optional
+
 from motor.motor_asyncio import AsyncIOMotorClient
 from config import MONGO_URI, MONGO_DB_NAME
 
@@ -38,7 +42,7 @@ async def save_user(user_id: int, username: str, lang: str = "id") -> None:
     )
 
 
-async def get_user(user_id: int) -> dict | None:
+async def get_user(user_id: int) -> Optional[dict]:
     """Ambil data user berdasarkan user_id."""
     return await users_col.find_one({"user_id": user_id})
 
@@ -99,7 +103,7 @@ async def get_history(user_id: int, limit: int = 10) -> list[dict]:
     return await cursor.to_list(length=limit)
 
 
-async def get_last_check(user_id: int) -> dict | None:
+async def get_last_check(user_id: int) -> Optional[dict]:
     """Ambil pengecekan terakhir user (untuk statistik)."""
     return await history_col.find_one(
         {"user_id": user_id},

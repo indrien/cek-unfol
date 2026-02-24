@@ -2,6 +2,10 @@
 Fungsi pembantu umum & custom filter Aiogram
 """
 
+from __future__ import annotations
+
+from typing import List
+
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 from utils.i18n import TEXTS
@@ -28,7 +32,7 @@ class MenuFilter(BaseFilter):
 
 # ── Formatter daftar unfollowers ──
 def format_unfollowers_list(
-    unfollowers: list[str], max_display: int = 50
+    unfollowers: List[str], max_display: int = 50
 ) -> str:
     """Format daftar unfollowers untuk ditampilkan di chat."""
     if not unfollowers:
