@@ -6,8 +6,8 @@ motor
 pymongo
 
 # === Instagram API (unofficial) ===
-# Versi 1.x kompatibel Python 3.9 (versi 2.x butuh Python 3.10+)
-instagrapi
+# VPS pakai Python 3.11+ jadi bisa pakai versi terbaru
+instagrapi>=2.0.0
 
 # === Utilitas ===
 python-dotenv

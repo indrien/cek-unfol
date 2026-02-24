@@ -70,6 +70,12 @@ TEXTS: Dict[str, Dict[str, str]] = {
             "❌ Bot tidak bisa login ke Instagram saat ini.\n"
             "Silakan coba metode Manual (upload file)."
         ),
+        "error_ip_blacklist": (
+            "🚫 <b>IP server di-blacklist Instagram.</b>\n\n"
+            "Metode Auto tidak tersedia saat ini.\n"
+            "Gunakan metode <b>📁 Manual (Upload File)</b> sebagai alternatif.\n\n"
+            "<i>Admin: tambahkan proxy residensial di .env</i>"
+        ),
         "error_umum": "❌ Terjadi kesalahan. Silakan coba lagi nanti.",
         "error_private": (
             "🔒 Akun <code>{username}</code> bersifat <b>private</b>.\n"
@@ -195,6 +201,12 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "error_ig_login": (
             "❌ Bot can't login to Instagram right now.\n"
             "Please try the Manual method (upload file)."
+        ),
+        "error_ip_blacklist": (
+            "🚫 <b>Server IP is blacklisted by Instagram.</b>\n\n"
+            "Auto method is not available right now.\n"
+            "Use <b>📁 Manual (Upload File)</b> method instead.\n\n"
+            "<i>Admin: add a residential proxy in .env</i>"
         ),
         "error_umum": "❌ An error occurred. Please try again later.",
         "error_private": (

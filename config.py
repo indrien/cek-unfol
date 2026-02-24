@@ -28,3 +28,8 @@ MONGO_DB_NAME: str = os.getenv("MONGO_DB_NAME", "cek_unfol_bot")
 # === Akun Instagram untuk metode auto ===
 IG_USERNAME: str = os.getenv("IG_USERNAME", "")
 IG_PASSWORD: str = os.getenv("IG_PASSWORD", "")
+
+# === Proxy untuk Instagram (opsional tapi DISARANKAN) ===
+# Format: http://user:pass@host:port atau socks5://user:pass@host:port
+# Tanpa proxy, IP datacenter (DigitalOcean, AWS, dll) akan di-blacklist Instagram
+IG_PROXY: str = os.getenv("IG_PROXY", "")

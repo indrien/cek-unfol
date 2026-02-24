@@ -21,7 +21,7 @@ from instagrapi.exceptions import (
     PleaseWaitFewMinutes,
 )
 
-from config import IG_USERNAME, IG_PASSWORD
+from config import IG_USERNAME, IG_PASSWORD, IG_PROXY
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +33,30 @@ logger = logging.getLogger(__name__)
 _client: Optional[Client] = None
 
 
+def _is_ig_configured() -> bool:
+    """Cek apakah akun IG sudah dikonfigurasi."""
+    return bool(IG_USERNAME and IG_PASSWORD)
+
+
 async def _get_client() -> Client:
     """Dapatkan client Instagram yang sudah login (singleton)."""
     global _client
     if _client is None:
+        if not _is_ig_configured():
+            raise LoginRequired("Akun Instagram belum dikonfigurasi di .env")
+
         _client = Client()
+
+        # Set proxy jika tersedia (PENTING untuk VPS/cloud)
+        if IG_PROXY:
+            _client.set_proxy(IG_PROXY)
+            logger.info("Menggunakan proxy: %s", IG_PROXY.split("@")[-1])
+        else:
+            logger.warning(
+                "PERINGATAN: Tidak ada proxy! IP datacenter kemungkinan "
+                "di-blacklist Instagram. Set IG_PROXY di .env"
+            )
+
         # Login di thread terpisah agar tidak blocking
         try:
             await asyncio.to_thread(_client.login, IG_USERNAME, IG_PASSWORD)
@@ -100,8 +119,15 @@ async def check_unfollowers_auto(username: str) -> dict:
         err = str(e).lower()
         if "not found" in err:
             return {"success": False, "error": "user_not_found"}
+        # Deteksi error IP blacklist
+        if "blacklist" in err or "change your ip" in err:
+            return {"success": False, "error": "ip_blacklisted"}
         return {"success": False, "error": str(e)}
     except Exception as e:
+        err_msg = str(e).lower()
+        # Tangkap error blacklist dari exception umum juga
+        if "blacklist" in err_msg or "change your ip" in err_msg:
+            return {"success": False, "error": "ip_blacklisted"}
         logger.error("Error cek unfollowers auto: %s", e)
         return {"success": False, "error": str(e)}
 
