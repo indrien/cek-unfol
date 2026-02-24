@@ -22,7 +22,7 @@ from instagrapi.exceptions import (
 )
 
 from config import IG_USERNAME, IG_PASSWORD, IG_PROXY
-from utils.proxy_fetcher import get_random_proxy
+from utils.proxy_fetcher import get_best_proxy, blacklist_proxy
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 
 # Singleton client Instagram
 _client: Optional[Client] = None
-# Jumlah percobaan proxy gratis sebelum menyerah
-MAX_PROXY_RETRIES = 5
+# Jumlah percobaan proxy sebelum menyerah
+MAX_PROXY_RETRIES = 3
 
 
 def _is_ig_configured() -> bool:
@@ -75,28 +75,31 @@ async def _get_client() -> Client:
                 _client = None
                 raise
 
-        # === Opsi 2: Proxy gratis dari GitHub (auto-rotate) ===
-        logger.info("IG_PROXY kosong, mencoba proxy gratis dari GitHub...")
+        # === Opsi 2: Proxy gratis dari GitHub (validasi dulu) ===
+        logger.info("IG_PROXY kosong, mencari proxy valid dari GitHub...")
         for attempt in range(1, MAX_PROXY_RETRIES + 1):
-            proxy_url = await get_random_proxy("http")
+            # get_best_proxy() sudah test koneksi proxy sebelum return
+            proxy_url = await get_best_proxy()
             if not proxy_url:
-                logger.error("Tidak ada proxy gratis tersedia.")
+                logger.error("Tidak ada proxy tersedia sama sekali.")
                 break
 
             logger.info(
-                "Percobaan %d/%d — proxy: %s",
+                "Percobaan %d/%d — proxy tervalidasi: %s",
                 attempt, MAX_PROXY_RETRIES, proxy_url
             )
             try:
                 _client = await _try_login_with_proxy(proxy_url)
-                logger.info("Login Instagram berhasil via proxy gratis: %s", proxy_url)
+                logger.info("✓ Login Instagram berhasil via: %s", proxy_url)
                 return _client
             except Exception as e:
                 err = str(e).lower()
                 if "blacklist" in err or "challenge" in err:
-                    logger.warning("Proxy %s di-blacklist, coba proxy lain...", proxy_url)
+                    logger.warning("Proxy %s di-blacklist IG, coba lain...", proxy_url)
                 else:
-                    logger.warning("Proxy %s gagal: %s", proxy_url, e)
+                    logger.warning("Proxy %s gagal login IG: %s", proxy_url, e)
+                # Tandai proxy ini gagal agar tidak dipakai lagi
+                blacklist_proxy(proxy_url)
                 _client = None
 
         # Semua proxy gagal
